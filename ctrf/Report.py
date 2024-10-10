@@ -80,10 +80,6 @@ class Report:
     def save(self, report_file: str) -> None:
         dirname = os.path.dirname(report_file)
         if dirname:
-            try:
-                os.makedirs(dirname)
-            except Exception as e:
-                print(e)
-                raise Exception(f"Can't create directory {dirname}")
+            os.makedirs(dirname, exist_ok=True)
         with open(report_file, 'w') as file:
             json.dump(self.get_report(), file, default=str, indent=4)
