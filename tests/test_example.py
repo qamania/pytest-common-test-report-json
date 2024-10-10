@@ -56,7 +56,7 @@ def test_parametrized(param):
 def test_parametrized_fail(param):
     assert param != 8
 
-@mark.test_id(1234)
+@mark.test_id(1234, hello='world')
 def test_with_test_id():
     assert 1 == 1
 
