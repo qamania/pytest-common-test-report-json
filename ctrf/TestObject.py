@@ -14,7 +14,7 @@ class TestStatus(Enum):
 
 class TestObject:
     name: str
-    status: TestStatus
+    _status: TestStatus
     raw_status: str
     duration: float = 0
     start: float
@@ -30,8 +30,8 @@ class TestObject:
 
     def __init__(self, report: TestReport, worker_id: str or None = None):
         self.name = report.nodeid.split('[')[0]
-        self.status = TestStatus.PENDING
-        self.status = self.set_status(report)
+        self._status = TestStatus.PENDING
+        self._status = self.set_status(report)
         self.raw_status = None
         self.duration = 0
         self.start = 0
@@ -45,13 +45,25 @@ class TestObject:
         self.browser = None
         self.trace = None
 
+    @property
+    def status(self) -> TestStatus:
+        return self._status
+
+    @status.setter
+    def status(self, value: TestStatus) -> None:
+        if self._status in (TestStatus.PENDING, TestStatus.PASSED):
+            self._status = value
+            return
+        elif self._status in (TestStatus.SKIPPED, TestStatus.FAILED):
+            return
+
     def set_status(self, report: TestReport) -> TestStatus:
-        if self.status in (TestStatus.SKIPPED, TestStatus.FAILED):
-            return self.status
+        if self._status in (TestStatus.SKIPPED, TestStatus.FAILED):
+            return self._status
         elif report.skipped:
-            self.status = TestStatus.SKIPPED
+            self._status = TestStatus.SKIPPED
         elif report.failed:
-            self.status = TestStatus.FAILED
+            self._status = TestStatus.FAILED
             self.raw_status = f"{report.when}_{report.outcome}"
             self.message = f"The test failed in the {report.when} phase"
             if hasattr(report, 'longreprtext'):
@@ -60,10 +72,10 @@ class TestObject:
                 elif "Exception" in report.longreprtext:
                     self.message += " due to an exception"
         elif report.passed:
-            self.status = TestStatus.PASSED
+            self._status = TestStatus.PASSED
         else:
-            self.status = TestStatus.OTHER
-        return self.status
+            self._status = TestStatus.OTHER
+        return self._status
 
     def update(self, report: TestReport) -> None:
         self.set_status(report)
@@ -81,7 +93,7 @@ class TestObject:
     def serialize(self) -> dict:
         result: dict[str, Any] = {
             'name': self.name,
-            'status': self.status.value,
+            'status': self._status.value,
             'raw_status': self.raw_status,
             'duration': self.duration,
             'start': self.start,

@@ -50,3 +50,16 @@ def test_do_calculations_8_post_error(post_fail):
 @mark.parametrize('param', [1, 2, 3, 4, 5])
 def test_parametrized(param):
     assert param < 10
+
+
+@mark.parametrize('param', [6, 7, 8, 9, 10])
+def test_parametrized_fail(param):
+    assert param != 8
+
+@mark.test_id(1234)
+def test_with_test_id():
+    assert 1 == 1
+
+@mark.test_id(1235)
+def test_with_test_id_2():
+    assert 1 == 1
