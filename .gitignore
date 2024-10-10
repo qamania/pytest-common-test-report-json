@@ -9,5 +9,5 @@ dist
 pytest.ini
 .env
 
-report.json
+../azure-test-reporter/report.json
 _conftest.py
