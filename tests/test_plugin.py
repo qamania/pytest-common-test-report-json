@@ -25,13 +25,13 @@ def ctrf_report_xdist(pytester: Pytester):
 def test_without_plugin_no_xdist(pytester: Pytester):
     pytester.copy_example(test_file)
     result = pytester.runpytest(*basic_test_args)
-    result.assert_outcomes(passed=9, skipped=1, failed=2, errors=2)
+    result.assert_outcomes(passed=15, skipped=1, failed=3, errors=2)
 
 
 def test_without_plugin_with_xdist(pytester: Pytester):
     pytester.copy_example(test_file)
     result = pytester.runpytest(*[*basic_test_args, "-n", "3"])
-    result.assert_outcomes(passed=9, skipped=1, failed=2, errors=2)
+    result.assert_outcomes(passed=15, skipped=1, failed=3, errors=2)
     assert "created: 3/3 workers" in result.stdout.str()
 
 
@@ -48,9 +48,9 @@ def test_with_markers(pytester: Pytester):
 
 
 def test_with_plugin_no_xdist(ctrf_report_sync):
-    assert ctrf_report_sync["results"]["summary"]["tests"] == 9
-    assert ctrf_report_sync["results"]["summary"]["passed"] == 4
-    assert ctrf_report_sync["results"]["summary"]["failed"] == 4
+    assert ctrf_report_sync["results"]["summary"]["tests"] == 12
+    assert ctrf_report_sync["results"]["summary"]["passed"] == 6
+    assert ctrf_report_sync["results"]["summary"]["failed"] == 5
     assert ctrf_report_sync["results"]["summary"]["skipped"] == 1
 
 
@@ -70,9 +70,9 @@ def test_any_test_has_timestamps(ctrf_report_sync):
 
 
 def test_with_plugin_with_xdist(ctrf_report_xdist):
-    assert ctrf_report_xdist["results"]["summary"]["tests"] == 9
-    assert ctrf_report_xdist["results"]["summary"]["passed"] == 4
-    assert ctrf_report_xdist["results"]["summary"]["failed"] == 4
+    assert ctrf_report_xdist["results"]["summary"]["tests"] == 12
+    assert ctrf_report_xdist["results"]["summary"]["passed"] == 6
+    assert ctrf_report_xdist["results"]["summary"]["failed"] == 5
     assert ctrf_report_xdist["results"]["summary"]["skipped"] == 1
 
 

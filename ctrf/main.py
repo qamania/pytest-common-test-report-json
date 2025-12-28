@@ -34,7 +34,16 @@ def pytest_unconfigure(config: Config):
 def ctrf_json_metadata(request: FixtureRequest):
     if not request.config.option.ctrf:
         return
-    tags = [mark.name for mark in request.node.iter_markers()]
+    tags = list()
+    for mark in request.node.iter_markers():
+        tag = mark.name
+        if mark.args:
+            for arg in mark.args:
+                tag += f'::{arg}'
+        if mark.kwargs:
+            for key, value in mark.kwargs.items():
+                tag += f'::{key}_{value}'
+        tags.append(tag)
     request.node._ctrf_metadata.setdefault('tags', tags)
     if hasattr(request.node, 'callspec'):
         browser = request.node.callspec.params.get('browser_name')

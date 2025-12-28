@@ -2,6 +2,7 @@ import os
 import pytest
 import time
 import json
+from typing import Optional
 from pytest import TestReport
 from collections import OrderedDict
 from .TestObject import TestObject, TestStatus
@@ -54,8 +55,15 @@ class Report:
     def process_retries(self) -> None:
         for test_id, test_data in self.test_items.items():
             name = test_id.split('[')[0]
-            test = self.prepared_tests.get(name)
+            test: Optional[TestObject] = self.prepared_tests.get(name)
             if test:
+                test.status = test_data.status
+                test.raw_status = test_data.raw_status
+                if test_data.status != TestStatus.PASSED:
+                    test.status = test_data.status
+                    test.raw_status = test_data.raw_status
+                    test.message = test_data.message
+                    test.trace = test_data.trace
                 test.retries += 1
             else:
                 self.prepared_tests[name] = test_data
@@ -72,10 +80,6 @@ class Report:
     def save(self, report_file: str) -> None:
         dirname = os.path.dirname(report_file)
         if dirname:
-            try:
-                os.makedirs(dirname, exist_ok=True)
-            except Exception as e:
-                print(e)
-                raise Exception(f"Can't create directory {dirname}")
+            os.makedirs(dirname, exist_ok=True)
         with open(report_file, 'w') as file:
             json.dump(self.get_report(), file, default=str, indent=4)
