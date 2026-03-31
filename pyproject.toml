@@ -10,7 +10,7 @@ exclude = [
 
 [project]
 name = "pytest-json-ctrf"
-version = "0.4.0"
+version = "0.4.1"
 
 dependencies = [
     "pytest>6.0.0",
@@ -41,3 +41,9 @@ markers = [
 
 [project.entry-points.pytest11]
 ctrf = "ctrf.main"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest-xdist>=2.0.0",
+]
+
