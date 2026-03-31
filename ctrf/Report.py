@@ -43,6 +43,14 @@ class Report:
             'stop': self.stop_time
         }
 
+    @staticmethod
+    def _get_environment() -> dict:
+        return {
+            "buildName": os.getenv("CTRF_BUILD_NAME", "Pytest JSON CTRF Report"),
+            "buildNumber": os.getenv("CTRF_BUILD_NUMBER", "000"),
+            "buildUrl": os.getenv("CTRF_BUILD_URL", "https://ctrf.io"),
+        }
+
     def collect(self, report: TestReport) -> None:
         if report.nodeid not in self.test_items.keys():
             worker_id = getattr(report, 'worker_id', None)
@@ -73,6 +81,7 @@ class Report:
         return {'results': {
             "tool": self._get_tool(),
             "summary": self._get_summary(),
+            "environment": self._get_environment(),
             "tests": [test.serialize() for test in self.prepared_tests.values()]
         }
         }

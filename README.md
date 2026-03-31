@@ -24,8 +24,16 @@ generate report.json file in the root directory of the project. File path is man
 ```bash
 pytest --ctrf report.json
 ```
+Environment Variables may be used to specify the required Environment Object
+fields when using the CTRF [slack-test-reporter][ctrf-slack-test-reporter-url].
 
-## Json exampe
+```bash
+CTRF_BUILD_NAME="Pytest JSON CTRF Report"
+CTRF_BUILD_NUMBER="000"
+CTRF_BUILD_URL="https://ctrf.io]"
+```
+
+## JSON example
 
 More info here: https://ctrf.io/docs/schema/examples
 
@@ -44,6 +52,11 @@ More info here: https://ctrf.io/docs/schema/examples
       "other": 0,
       "start": 1706644023,
       "stop": 1706644043
+    },
+    "environment": {
+        "buildName": "Pytest JSON CTRF Report",
+        "buildNumber": "000",
+        "buildUrl": "https://ctrf.io"
     },
     "tests": [
       {
@@ -85,3 +98,4 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 ### Roadmap
 - Add screenshots handling
 - Add hooks for the report extension
+- [ctrf-slack-test-reporter-url]: https://github.com/ctrf-io/slack-test-reporter
