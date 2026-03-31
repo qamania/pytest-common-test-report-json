@@ -19,7 +19,7 @@ class Report:
         self.start_time = int(time.time() * 1000)
 
     def stop(self) -> None:
-        self.start_time = int(time.time() * 1000)
+        self.stop_time = int(time.time() * 1000)
 
     @staticmethod
     def _get_tool() -> dict:

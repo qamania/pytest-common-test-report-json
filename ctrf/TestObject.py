@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any
+from typing import Any, Optional, List, Dict
 
 from pytest import TestReport
 
@@ -15,20 +15,20 @@ class TestStatus(Enum):
 class TestObject:
     name: str
     _status: TestStatus
-    raw_status: str
-    duration: float = 0
-    start: float
-    stop: float
+    raw_status: Optional[str]
+    duration: int = 0
+    start: int
+    stop: int
     retries: int
-    message: str
+    message: Optional[str]
 
-    worker_id: str
+    worker_id: Optional[str]
     file_path: str
-    tags: list[str]
-    browser: str
-    trace: str
+    tags: List[str]
+    browser: Optional[str]
+    trace: Optional[str]
 
-    def __init__(self, report: TestReport, worker_id: str or None = None):
+    def __init__(self, report: TestReport, worker_id: Optional[str] = None):
         self.name = report.nodeid.split('[')[0]
         self._status = TestStatus.PENDING
         self._status = self.set_status(report)
@@ -41,7 +41,7 @@ class TestObject:
 
         self.worker_id = worker_id
         self.file_path = report.location[0]
-        self.tags = []
+        self.tags: List[str] = []
         self.browser = None
         self.trace = None
 
@@ -79,11 +79,11 @@ class TestObject:
 
     def update(self, report: TestReport) -> None:
         self.set_status(report)
-        self.duration += 1000 * report.duration  # pytest reports duration in seconds, CTRF requires milliseconds
         if report.when == "setup" and self.start == 0:
-            self.start = report.start
+            self.start = int(report.start * 1000)
         if report.when == "teardown" and self.stop == 0:
-            self.stop = report.stop
+            self.stop = int(report.stop * 1000)
+            self.duration = self.stop - self.start
         if report.longrepr and len(report.longreprtext) > 0:
             self.trace = report.longreprtext
         if hasattr(report, '_ctrf_metadata'):
@@ -91,7 +91,7 @@ class TestObject:
             self.browser = report._ctrf_metadata.get('browser')
 
     def serialize(self) -> dict:
-        result: dict[str, Any] = {
+        result: Dict[str, Any] = {
             'name': self.name,
             'status': self._status.value,
             'raw_status': self.raw_status,
