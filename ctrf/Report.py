@@ -16,10 +16,10 @@ class Report:
         self.stop_time = None
 
     def start(self) -> None:
-        self.start_time = self.start_time = int(time.time() * 1000)
+        self.start_time = int(time.time() * 1000)
 
     def stop(self) -> None:
-        self.stop_time = self.start_time = int(time.time() * 1000)
+        self.start_time = int(time.time() * 1000)
 
     @staticmethod
     def _get_tool() -> dict:
