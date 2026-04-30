@@ -48,8 +48,8 @@ def test_with_markers(pytester: Pytester):
 
 
 def test_with_plugin_no_xdist(ctrf_report_sync):
-    assert ctrf_report_sync["results"]["summary"]["tests"] == 12
-    assert ctrf_report_sync["results"]["summary"]["passed"] == 6
+    assert ctrf_report_sync["results"]["summary"]["tests"] == 20
+    assert ctrf_report_sync["results"]["summary"]["passed"] == 14
     assert ctrf_report_sync["results"]["summary"]["failed"] == 5
     assert ctrf_report_sync["results"]["summary"]["skipped"] == 1
 
@@ -70,8 +70,8 @@ def test_any_test_has_timestamps(ctrf_report_sync):
 
 
 def test_with_plugin_with_xdist(ctrf_report_xdist):
-    assert ctrf_report_xdist["results"]["summary"]["tests"] == 12
-    assert ctrf_report_xdist["results"]["summary"]["passed"] == 6
+    assert ctrf_report_xdist["results"]["summary"]["tests"] == 20
+    assert ctrf_report_xdist["results"]["summary"]["passed"] == 14
     assert ctrf_report_xdist["results"]["summary"]["failed"] == 5
     assert ctrf_report_xdist["results"]["summary"]["skipped"] == 1
 

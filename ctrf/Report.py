@@ -62,7 +62,7 @@ class Report:
 
     def process_retries(self) -> None:
         for test_id, test_data in self.test_items.items():
-            name = test_id.split('[')[0]
+            name = str(test_id)
             test: Optional[TestObject] = self.prepared_tests.get(name)
             if test:
                 test.status = test_data.status
