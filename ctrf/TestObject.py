@@ -16,7 +16,6 @@ class TestObject:
     name: str
     _status: TestStatus
     raw_status: Optional[str]
-    duration: int = 0
     start: int
     stop: int
     retries: int
@@ -33,7 +32,6 @@ class TestObject:
         self._status = TestStatus.PENDING
         self._status = self.set_status(report)
         self.raw_status = None
-        self.duration = 0
         self.start = 0
         self.stop = 0
         self.retries = 0
@@ -83,7 +81,6 @@ class TestObject:
             self.start = int(report.start * 1000)
         if report.when == "teardown" and self.stop == 0:
             self.stop = int(report.stop * 1000)
-            self.duration = self.stop - self.start
         if report.longrepr and len(report.longreprtext) > 0:
             self.trace = report.longreprtext
         if hasattr(report, '_ctrf_metadata'):
@@ -95,7 +92,7 @@ class TestObject:
             'name': self.name,
             'status': self._status.value,
             'raw_status': self.raw_status,
-            'duration': self.duration,
+            'duration': self.stop - self.start,
             'start': self.start,
             'stop': self.stop,
             'retries': None if self.retries == 1 else self.retries,
