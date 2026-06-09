@@ -39,6 +39,9 @@ More info here: https://ctrf.io/docs/schema/examples
 
 ```json
 {
+  "reportFormat": "CTRF",
+  "specVersion": "0.0.0",
+  "generatedBy": "pytest",  
   "results": {
     "tool": {
       "name": "jest"
@@ -96,6 +99,7 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 - https://github.com/infopulse/Playwright-course-python -> The report will be used in the demo project as +1 report option
 
 ## Changelog
+- 0.5.1 - added mandatory root object fields: reportFormat, specVersion, generatedBy
 - 0.5.0 - Changed logic of handling parametrized tests. Previously they were marked as retries, now they are reported as separate tests
 - 0.4.1 - Introduced backward compatibility with python 3.8, fixed issues with the time formats
 

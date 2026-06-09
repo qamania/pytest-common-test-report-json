@@ -3,6 +3,7 @@ import pytest
 import time
 import json
 from typing import Optional
+from datetime import datetime, timezone
 from pytest import TestReport
 from collections import OrderedDict
 from .TestObject import TestObject, TestStatus
@@ -78,12 +79,17 @@ class Report:
 
     def get_report(self) -> dict:
         self.process_retries()
-        return {'results': {
-            "tool": self._get_tool(),
-            "summary": self._get_summary(),
-            "environment": self._get_environment(),
-            "tests": [test.serialize() for test in self.prepared_tests.values()]
-        }
+        return {
+            'reportFormat': 'CTRF',
+            'specVersion': '0.0.0',
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'generatedBy': 'pytest',
+            'results': {
+                "tool": self._get_tool(),
+                "summary": self._get_summary(),
+                "environment": self._get_environment(),
+                "tests": [test.serialize() for test in self.prepared_tests.values()]
+            }
         }
 
     def save(self, report_file: str) -> None:
