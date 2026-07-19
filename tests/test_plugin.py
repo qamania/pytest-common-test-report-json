@@ -89,3 +89,20 @@ def test_any_test_has_timestamps_xdist(ctrf_report_xdist):
         assert test.get("start") is not None
         assert test.get("stop") is not None
         assert test.get("duration") is not None
+
+def test_parametrize_marker_not_in_tags(pytester: Pytester):
+    pytester.makepyfile("""
+        import pytest
+
+        @pytest.mark.parametrize('param', [{'key': 'value', 'data': 'x' * 1000}, {'key': 'other', 'data': 'y' * 1000}], ids=['case1', 'case2'])
+        def test_parametrized(param):
+            assert True
+    """)
+    pytester.runpytest("--ctrf", "report.json")
+    with open(pytester.path / "report.json") as file:
+        report = json.load(file)
+    for test in report["results"]["tests"]:
+        tags = test.get("tags", [])
+        assert all("parametrize" not in tag for tag in tags), (
+            f"parametrize marker should not appear in tags, but got: {tags}"
+        )
