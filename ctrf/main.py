@@ -36,6 +36,8 @@ def ctrf_json_metadata(request: FixtureRequest):
         return
     tags = list()
     for mark in request.node.iter_markers():
+        if mark.name == 'parametrize':
+            continue
         tag = mark.name
         if mark.args:
             for arg in mark.args:
