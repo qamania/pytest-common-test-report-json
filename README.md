@@ -9,7 +9,9 @@ Do not worry if report in GitHub does not appear immediately. It takes some time
 - Generates JSON report
 - Tested to work correctly with and without [pytest-xdist](https://pypi.org/project/pytest-xdist/)
 - Tested to get browser name from [pytest-playwright](https://pypi.org/project/pytest-playwright/)
-- Parametrized tests are supported and reported as 1 test with multiple retries
+- Reruns from [pytest-rerunfailures](https://pypi.org/project/pytest-rerunfailures/) are reported as `retries`, `retryAttempts` and `flaky`
+- Each test gets a `suite` hierarchy: file, then classes
+- Parametrized tests are supported: each case is reported as a separate test named by its full pytest node id (e.g. `test_file.py::test_param[1]`), with its values in `parameters`
 
 ## Installation
 
@@ -26,17 +28,19 @@ pytest --ctrf report.json
 ```
 Environment Variables may be used to specify the required Environment Object
 fields when using the CTRF [slack-test-reporter][ctrf-slack-test-reporter-url].
-All of them are optional, see [.env.example](./.env.example) for defaults.
+All of them are optional: a variable that is not set is left out of the report, see [.env.example](./.env.example).
 
 ```bash
 CTRF_BUILD_NAME="Pytest JSON CTRF Report"
 CTRF_BUILD_NUMBER=123
 CTRF_BUILD_URL="https://ctrf.io"
 CTRF_TEST_ENVIRONMENT="staging"
+CTRF_TEST_TYPE="e2e"
 ```
 
 `CTRF_BUILD_NUMBER` must be an integer. Otherwise a warning is issued and `buildNumber` is omitted from the report.  
-`osPlatform`, `osRelease` and `osVersion` are detected automatically.
+`osPlatform`, `osRelease` and `osVersion` are detected automatically.  
+`CTRF_TEST_TYPE` is written to every test's `type` field.
 
 ## JSON example
 
@@ -109,6 +113,13 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 - https://github.com/infopulse/Playwright-course-python -> The report will be used in the demo project as +1 report option
 
 ## Changelog
+- 0.6.0 - fixed issue 12 - report now validates against the CTRF schema. Thanks to [@jamesarosen](https://github.com/jamesarosen) for the detailed report!
+  - `filePath`, `rawStatus` and integer `buildNumber`; environment fields are added only when their variables are set (no defaults), plus `osPlatform`, `osRelease`, `osVersion` and `type` (`CTRF_TEST_TYPE`)
+  - parametrized tests are named by the full node id and get `parameters`
+  - `message` is the real failure message; skip and xfail reasons are reported in `message`
+  - reruns (pytest-rerunfailures) are reported as `retries`, `retryAttempts` and `flaky`
+  - new `suite` field and summary `other`, `flaky`, `suites`, `duration`
+  - CI validates reports against the CTRF schema
 - 0.5.3 - fixed issue 6 - @pytest.mark.parametrize will no longer be added to tags to prevent exhausting memory
 - 0.5.1 - added mandatory root object fields: reportFormat, specVersion, generatedBy
 - 0.5.0 - Changed logic of handling parametrized tests. Previously they were marked as retries, now they are reported as separate tests

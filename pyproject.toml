@@ -45,4 +45,6 @@ ctrf = "ctrf.main"
 [dependency-groups]
 dev = [
     "jsonschema>=4.23.0",
+    "pytest-rerunfailures>=14.0",
+    "pytest-xdist>=3.6.1",
 ]

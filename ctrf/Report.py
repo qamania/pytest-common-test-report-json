@@ -6,7 +6,6 @@ import time
 import json
 import warnings
 from uuid import uuid4
-from typing import Optional
 from datetime import datetime, timezone
 from pytest import TestReport
 from collections import OrderedDict
@@ -16,7 +15,6 @@ from .TestObject import TestObject, TestStatus
 class Report:
     def __init__(self):
         self.test_items = OrderedDict()
-        self.prepared_tests = dict()
         self.start_time = None
         self.stop_time = None
 
@@ -34,35 +32,46 @@ class Report:
         }
 
     def list_tests_by_status(self, status: TestStatus) -> list:
-        return [test for test in self.prepared_tests.values() if test.status == status]
+        return [test for test in self.test_items.values() if test.status == status]
 
     def _get_summary(self) -> dict:
-        return {
-            'tests': len(self.prepared_tests),
+        tests = list(self.test_items.values())
+        summary = {
+            'tests': len(tests),
             'passed': len(self.list_tests_by_status(TestStatus.PASSED)),
             'failed': len(self.list_tests_by_status(TestStatus.FAILED)),
             'skipped': len(self.list_tests_by_status(TestStatus.SKIPPED)),
             'pending': len(self.list_tests_by_status(TestStatus.PENDING)),
-            'other': 0,
+            'other': len(self.list_tests_by_status(TestStatus.OTHER)),
+            'flaky': len([test for test in tests if test.flaky]),
+            # a suite is a file or class that directly contains tests
+            'suites': len({tuple(test.suite) for test in tests if test.suite}),
             'start': self.start_time,
-            'stop': self.stop_time
+            'stop': self.stop_time,
         }
+        if self.start_time is not None and self.stop_time is not None:
+            summary['duration'] = self.stop_time - self.start_time
+        return summary
 
     @staticmethod
     def _get_environment() -> dict:
         env = {
-            "buildName": os.getenv("CTRF_BUILD_NAME", "Pytest JSON CTRF Report"),
-            "buildUrl": os.getenv("CTRF_BUILD_URL", "https://ctrf.io"),
             "osPlatform": sys.platform,
             "osRelease": platform.release(),
             "osVersion": platform.version(),
-            "testEnvironment": os.getenv("CTRF_TEST_ENVIRONMENT", "local"),
         }
-        raw = os.getenv("CTRF_BUILD_NUMBER", "0")
-        try:
-            env["buildNumber"] = int(raw)
-        except ValueError:
-            warnings.warn(f"CTRF_BUILD_NUMBER={raw!r} is not an integer; buildNumber omitted from the report")
+        for field, variable in (("buildName", "CTRF_BUILD_NAME"),
+                                ("buildUrl", "CTRF_BUILD_URL"),
+                                ("testEnvironment", "CTRF_TEST_ENVIRONMENT")):
+            value = os.getenv(variable)
+            if value:
+                env[field] = value
+        raw = os.getenv("CTRF_BUILD_NUMBER")
+        if raw:
+            try:
+                env["buildNumber"] = int(raw)
+            except ValueError:
+                warnings.warn(f"CTRF_BUILD_NUMBER={raw!r} is not an integer; buildNumber omitted from the report")
         return env
 
     def collect(self, report: TestReport) -> None:
@@ -74,24 +83,8 @@ class Report:
         test.update(report)
         self.test_items[report.nodeid] = test
 
-    def process_retries(self) -> None:
-        for test_id, test_data in self.test_items.items():
-            name = str(test_id)
-            test: Optional[TestObject] = self.prepared_tests.get(name)
-            if test:
-                test.status = test_data.status
-                test.raw_status = test_data.raw_status
-                if test_data.status != TestStatus.PASSED:
-                    test.status = test_data.status
-                    test.raw_status = test_data.raw_status
-                    test.message = test_data.message
-                    test.trace = test_data.trace
-                test.retries += 1
-            else:
-                self.prepared_tests[name] = test_data
-
     def get_report(self) -> dict:
-        self.process_retries()
+        test_type = os.getenv("CTRF_TEST_TYPE") or None
         return {
             'reportFormat': 'CTRF',
             'specVersion': '1.0.0',
@@ -102,7 +95,7 @@ class Report:
                 "tool": self._get_tool(),
                 "summary": self._get_summary(),
                 "environment": self._get_environment(),
-                "tests": [test.serialize() for test in self.prepared_tests.values()]
+                "tests": [test.serialize(test_type) for test in self.test_items.values()]
             }
         }
 

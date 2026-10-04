@@ -48,7 +48,23 @@ def ctrf_json_metadata(request: FixtureRequest):
         tags.append(tag)
     request.node._ctrf_metadata.setdefault('tags', tags)
     if hasattr(request.node, 'callspec'):
-        browser = request.node.callspec.params.get('browser_name')
+        params = request.node.callspec.params
+        browser = params.get('browser_name')
         if browser:
             request.node._ctrf_metadata.setdefault('browser', browser)
+        request.node._ctrf_metadata.setdefault(
+            'parameters', {key: _serializable_param(value) for key, value in params.items()})
     return request.node._ctrf_metadata
+
+
+MAX_PARAM_LENGTH = 200
+
+
+def _serializable_param(value):
+    # keep only primitives: report metadata is sent between xdist workers and dumped to json;
+    # long values are truncated to keep the report small (see issue 6)
+    if not isinstance(value, (str, int, float, bool, type(None))):
+        value = repr(value)
+    if isinstance(value, str) and len(value) > MAX_PARAM_LENGTH:
+        value = value[:MAX_PARAM_LENGTH] + '...'
+    return value
