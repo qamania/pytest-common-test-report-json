@@ -26,12 +26,17 @@ pytest --ctrf report.json
 ```
 Environment Variables may be used to specify the required Environment Object
 fields when using the CTRF [slack-test-reporter][ctrf-slack-test-reporter-url].
+All of them are optional, see [.env.example](./.env.example) for defaults.
 
 ```bash
 CTRF_BUILD_NAME="Pytest JSON CTRF Report"
-CTRF_BUILD_NUMBER="000"
-CTRF_BUILD_URL="https://ctrf.io]"
+CTRF_BUILD_NUMBER=123
+CTRF_BUILD_URL="https://ctrf.io"
+CTRF_TEST_ENVIRONMENT="staging"
 ```
+
+`CTRF_BUILD_NUMBER` must be an integer. Otherwise a warning is issued and `buildNumber` is omitted from the report.  
+`osPlatform`, `osRelease` and `osVersion` are detected automatically.
 
 ## JSON example
 
@@ -40,11 +45,12 @@ More info here: https://ctrf.io/docs/schema/examples
 ```json
 {
   "reportFormat": "CTRF",
-  "specVersion": "0.0.0",
-  "generatedBy": "pytest",  
+  "specVersion": "1.0.0",
+  "generatedBy": "pytest",
   "results": {
     "tool": {
-      "name": "jest"
+      "name": "pytest",
+      "version": "9.0.3"
     },
     "summary": {
       "tests": 3,
@@ -58,8 +64,12 @@ More info here: https://ctrf.io/docs/schema/examples
     },
     "environment": {
         "buildName": "Pytest JSON CTRF Report",
-        "buildNumber": "000",
-        "buildUrl": "https://ctrf.io"
+        "buildUrl": "https://ctrf.io",
+        "osPlatform": "linux",
+        "osRelease": "6.8.0-45-generic",
+        "osVersion": "#45-Ubuntu SMP PREEMPT_DYNAMIC",
+        "testEnvironment": "staging",
+        "buildNumber": 123
     },
     "tests": [
       {

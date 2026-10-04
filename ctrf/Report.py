@@ -1,7 +1,11 @@
 import os
+import platform
+import sys
 import pytest
 import time
 import json
+import warnings
+from uuid import uuid4
 from typing import Optional
 from datetime import datetime, timezone
 from pytest import TestReport
@@ -46,11 +50,20 @@ class Report:
 
     @staticmethod
     def _get_environment() -> dict:
-        return {
+        env = {
             "buildName": os.getenv("CTRF_BUILD_NAME", "Pytest JSON CTRF Report"),
-            "buildNumber": os.getenv("CTRF_BUILD_NUMBER", "000"),
             "buildUrl": os.getenv("CTRF_BUILD_URL", "https://ctrf.io"),
+            "osPlatform": sys.platform,
+            "osRelease": platform.release(),
+            "osVersion": platform.version(),
+            "testEnvironment": os.getenv("CTRF_TEST_ENVIRONMENT", "local"),
         }
+        raw = os.getenv("CTRF_BUILD_NUMBER", "0")
+        try:
+            env["buildNumber"] = int(raw)
+        except ValueError:
+            warnings.warn(f"CTRF_BUILD_NUMBER={raw!r} is not an integer; buildNumber omitted from the report")
+        return env
 
     def collect(self, report: TestReport) -> None:
         if report.nodeid not in self.test_items.keys():
@@ -81,7 +94,8 @@ class Report:
         self.process_retries()
         return {
             'reportFormat': 'CTRF',
-            'specVersion': '0.0.0',
+            'specVersion': '1.0.0',
+            'reportId': str(uuid4()),
             'timestamp': datetime.now(timezone.utc).isoformat(),
             'generatedBy': 'pytest',
             'results': {

@@ -12,6 +12,8 @@ jobs:
       name: DEV
     permissions:
       id-token: write
+    env:
+      REPORT: 'test-results/report.json'
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
@@ -32,8 +34,11 @@ jobs:
           pip install pytest-xdist
           pip install .
           python -m pytest --ctrf $REPORT tests/test_plugin.py
-        env:
-            REPORT: 'test-results/report.json'
+      - name: Validate report against CTRF schema
+        run: |
+          pip install jsonschema
+          curl -fsSLO https://raw.githubusercontent.com/ctrf-io/ctrf/main/schema/ctrf.schema.json
+          python schema_validator/validate.py --schema ctrf.schema.json --report $REPORT
       - name: Build package
         run: |
           python -m build

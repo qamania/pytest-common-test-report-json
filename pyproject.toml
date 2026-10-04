@@ -6,11 +6,11 @@ build-backend = "setuptools.build_meta"
 exclude = [
     ".github", "tests", "build", "dist", ".venv",
     "pytest_json_ctrf.egg-info", ".env", ".gitignore",
-    "CHANGELOG.md", "assets", "test-results"]
+    "CHANGELOG.md", "assets", "test-results", "schema_validator"]
 
 [project]
 name = "pytest-json-ctrf"
-version = "0.5.3"
+version = "0.6.0"
 
 dependencies = [
     "pytest>6.0.0",
@@ -30,7 +30,7 @@ classifiers = [
 ]
 
 [project.urls]
-"Infopulse" = "https://infopulse.com/"
+"QAMania" = "https://qamania.org"
 "Homepage" = "https://github.com/infopulse/pytest-common-test-report-json"
 
 [tool.pytest.ini_options]
@@ -41,3 +41,8 @@ markers = [
 
 [project.entry-points.pytest11]
 ctrf = "ctrf.main"
+
+[dependency-groups]
+dev = [
+    "jsonschema>=4.23.0",
+]
