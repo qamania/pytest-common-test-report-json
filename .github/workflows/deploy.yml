@@ -50,4 +50,7 @@ jobs:
         uses: ctrf-io/github-test-reporter@v1.3.0
         with:
           report-path: ${{ env.REPORT }}
-          github-report: true
+          summary-report: true   # counts table: tests, passed, failed, skipped, pending, other, flaky, duration
+          test-report: true      # every test with status and duration
+          failed-report: true    # failed tests with their failure message
+          flaky-report: true     # tests that passed after reruns

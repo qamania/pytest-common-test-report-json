@@ -113,6 +113,7 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 - https://github.com/infopulse/Playwright-course-python -> The report will be used in the demo project as +1 report option
 
 ## Changelog
+- 0.6.1 - proper license added to the package to fix build pipeline warnings
 - 0.6.0 - fixed issue 12 - report now validates against the CTRF schema. Thanks to [@jamesarosen](https://github.com/jamesarosen) for the detailed report!
   - `filePath`, `rawStatus` and integer `buildNumber`; environment fields are added only when their variables are set (no defaults), plus `osPlatform`, `osRelease`, `osVersion` and `type` (`CTRF_TEST_TYPE`)
   - parametrized tests are named by the full node id and get `parameters`

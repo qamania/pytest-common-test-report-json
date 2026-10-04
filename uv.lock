@@ -313,7 +313,7 @@ wheels = [
 
 [[package]]
 name = "pytest-json-ctrf"
-version = "0.6.0"
+version = "0.6.1"
 source = { editable = "." }
 dependencies = [
     { name = "pytest", version = "8.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
