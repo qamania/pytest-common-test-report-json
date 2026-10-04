@@ -8,8 +8,8 @@ dist
 .venv*
 pytest.ini
 .env
-uv.lock
 
 ../azure-test-reporter/report.json
 _conftest.py
 schema_validator/*.json
+.coverage
