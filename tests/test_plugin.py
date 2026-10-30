@@ -534,3 +534,58 @@ def test_not_parametrized_test_has_no_parameters(ctrf_report_sync):
     for test in ctrf_report_sync["results"]["tests"]:
         if "[" not in test["name"]:
             assert "parameters" not in test
+
+
+SKEW_CONFTEST = """
+    import pytest
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_runtest_makereport(item, call):
+        report = (yield).get_result()
+        # simulate a time-travel library moving the wall clock between phases:
+        # setup appears 100s in the future, teardown 100s in the past (start/stop are in seconds)
+        if report.when == "setup":
+            report.start += 100
+        if report.when == "teardown":
+            report.stop -= 100
+"""
+
+
+def test_duration_ignores_wall_clock_skew(pytester: Pytester):
+    pytester.makeconftest(SKEW_CONFTEST)
+    pytester.makepyfile(test_skew="""
+        import time
+
+        def test_sleeps():
+            time.sleep(0.1)
+    """)
+    pytester.runpytest("--ctrf", "report.json")
+    with open(pytester.path / "report.json") as file:
+        test = json.load(file)["results"]["tests"][0]
+    # ~100ms from monotonic phase durations, not about -200000ms from the skewed wall clock
+    assert 50 <= test["duration"] <= 5000
+
+
+def test_rerun_durations_ignore_wall_clock_skew(pytester: Pytester):
+    pytester.makeconftest(SKEW_CONFTEST)
+    pytester.makepyfile(test_rerun_skew="""
+        import pytest
+        import time
+
+        calls = {}
+
+        @pytest.mark.flaky(reruns=1)
+        def test_flaky():
+            time.sleep(0.05)
+            calls["n"] = calls.get("n", 0) + 1
+            assert calls["n"] > 1
+    """)
+    pytester.runpytest("--ctrf", "report.json")
+    with open(pytester.path / "report.json") as file:
+        test = json.load(file)["results"]["tests"][0]
+    assert test["status"] == "passed"
+    assert test["retries"] == 1
+    attempt = test["retryAttempts"][0]
+    assert attempt["status"] == "failed"
+    assert 25 <= attempt["duration"] <= 5000
+    assert 25 <= test["duration"] <= 5000
