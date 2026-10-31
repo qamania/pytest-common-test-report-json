@@ -542,32 +542,41 @@ SKEW_CONFTEST = """
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(item, call):
         report = (yield).get_result()
-        # simulate a time-travel library moving the wall clock between phases:
-        # setup appears 100s in the future, teardown 100s in the past (start/stop are in seconds)
+        # simulate a time-travel library moving the wall clock between phases (start/stop are in seconds):
+        # a positive skew puts setup in the past and teardown in the future, a negative one the reverse
         if report.when == "setup":
-            report.start += 100
+            report.start -= {skew}
         if report.when == "teardown":
-            report.stop -= 100
+            report.stop += {skew}
 """
 
+SKEW_PARAMS = pytest.mark.parametrize("skew,args", [
+    (100, []),
+    (-100, []),
+    (100, ["-n", "2"]),
+    (-100, ["-n", "2"]),
+], ids=["ahead", "behind", "ahead-xdist", "behind-xdist"])
 
-def test_duration_ignores_wall_clock_skew(pytester: Pytester):
-    pytester.makeconftest(SKEW_CONFTEST)
+
+@SKEW_PARAMS
+def test_duration_ignores_wall_clock_skew(pytester: Pytester, skew, args):
+    pytester.makeconftest(SKEW_CONFTEST.format(skew=skew))
     pytester.makepyfile(test_skew="""
         import time
 
         def test_sleeps():
             time.sleep(0.1)
     """)
-    pytester.runpytest("--ctrf", "report.json")
+    pytester.runpytest("--ctrf", "report.json", *args)
     with open(pytester.path / "report.json") as file:
         test = json.load(file)["results"]["tests"][0]
-    # ~100ms from monotonic phase durations, not about -200000ms from the skewed wall clock
+    # ~100ms from monotonic phase durations, not about ±200000ms from the skewed wall clock
     assert 50 <= test["duration"] <= 5000
 
 
-def test_rerun_durations_ignore_wall_clock_skew(pytester: Pytester):
-    pytester.makeconftest(SKEW_CONFTEST)
+@SKEW_PARAMS
+def test_rerun_durations_ignore_wall_clock_skew(pytester: Pytester, skew, args):
+    pytester.makeconftest(SKEW_CONFTEST.format(skew=skew))
     pytester.makepyfile(test_rerun_skew="""
         import pytest
         import time
@@ -579,16 +588,24 @@ def test_rerun_durations_ignore_wall_clock_skew(pytester: Pytester):
             time.sleep(0.05)
             calls["n"] = calls.get("n", 0) + 1
             assert calls["n"] > 1
+
+        @pytest.mark.flaky(reruns=1)
+        def test_fast_flaky():
+            calls["fast"] = calls.get("fast", 0) + 1
+            assert calls["fast"] > 1
     """)
-    pytester.runpytest("--ctrf", "report.json")
+    pytester.runpytest("--ctrf", "report.json", *args)
     with open(pytester.path / "report.json") as file:
-        test = json.load(file)["results"]["tests"][0]
-    assert test["status"] == "passed"
-    assert test["retries"] == 1
-    attempt = test["retryAttempts"][0]
-    assert attempt["status"] == "failed"
-    assert 25 <= attempt["duration"] <= 5000
-    assert 25 <= test["duration"] <= 5000
+        tests = {t["name"].split("::")[-1]: t for t in json.load(file)["results"]["tests"]}
+    for test in tests.values():
+        assert test["status"] == "passed"
+        assert test["retries"] == 1
+        assert test["retryAttempts"][0]["status"] == "failed"
+    assert 25 <= tests["test_flaky"]["retryAttempts"][0]["duration"] <= 5000
+    assert 25 <= tests["test_flaky"]["duration"] <= 5000
+    # a retry this fast takes well under a second, whichever way the wall clock moved
+    assert 0 <= tests["test_fast_flaky"]["retryAttempts"][0]["duration"] < 1000
+    assert 0 <= tests["test_fast_flaky"]["duration"] < 1000
 
 
 @pytest.mark.parametrize("args", [[], ["--reruns", "1"], ["-n", "2"]], ids=["plain", "reruns", "xdist"])
