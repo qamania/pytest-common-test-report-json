@@ -136,7 +136,8 @@ class TestObject:
             self._setup_seen = True
             self.start = int(report.start * 1000)
         # report.duration is monotonic, unlike the wall-clock start/stop.
-        # subtest reports (they carry a context) are already counted in their test's call phase
+        # SubtestReport (pytest>=9) and pytest-subtests' SubTestReport carry a context;
+        # their time is already counted in the parent test's call phase
         if not hasattr(report, 'context'):
             self._duration_s += report.duration
         self.set_status(report)
