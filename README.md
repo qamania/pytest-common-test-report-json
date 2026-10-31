@@ -113,6 +113,9 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 - https://github.com/infopulse/Playwright-course-python -> The report will be used in the demo project as +1 report option
 
 ## Changelog
+- Unreleased - fixed issue 7 - test and retry attempt `duration` is the sum of pytest's monotonic phase durations, so it stays correct when a time-travel library such as time-machine moves the wall clock between tests
+  - `start` and `stop` are still wall-clock timestamps, so `duration` can differ from `stop - start`
+  - time between phases (report hooks, failure formatting) is no longer counted
 - 0.6.1 - proper license added to the package to fix build pipeline warnings
 - 0.6.0 - fixed issue 12 - report now validates against the CTRF schema. Thanks to [@jamesarosen](https://github.com/jamesarosen) for the detailed report!
   - `filePath`, `rawStatus` and integer `buildNumber`; environment fields are added only when their variables are set (no defaults), plus `osPlatform`, `osRelease`, `osVersion` and `type` (`CTRF_TEST_TYPE`)
