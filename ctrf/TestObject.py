@@ -135,8 +135,10 @@ class TestObject:
                 self._finish_attempt()
             self._setup_seen = True
             self.start = int(report.start * 1000)
-        # report.duration is monotonic, unlike the wall-clock start/stop
-        self._duration += report.duration
+        # report.duration is monotonic, unlike the wall-clock start/stop.
+        # subtest reports (they carry a context) are already counted in their test's call phase
+        if not hasattr(report, 'context'):
+            self._duration += report.duration
         self.set_status(report)
         if report.when == "teardown":
             self.stop = int(report.stop * 1000)

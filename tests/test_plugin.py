@@ -589,3 +589,23 @@ def test_rerun_durations_ignore_wall_clock_skew(pytester: Pytester):
     assert attempt["status"] == "failed"
     assert 25 <= attempt["duration"] <= 5000
     assert 25 <= test["duration"] <= 5000
+
+
+@pytest.mark.parametrize("args", [[], ["--reruns", "1"], ["-n", "2"]], ids=["plain", "reruns", "xdist"])
+def test_subtest_durations_are_not_counted_twice(pytester: Pytester, args):
+    if not hasattr(pytest, "Subtests"):
+        pytest.skip("built-in subtests need pytest 9")
+    pytester.makepyfile(test_subtests="""
+        import time
+
+        def test_parent(subtests):
+            for i in range(3):
+                with subtests.test(i=i):
+                    time.sleep(0.1)
+    """)
+    pytester.runpytest("--ctrf", "report.json", *args)
+    with open(pytester.path / "report.json") as file:
+        test = json.load(file)["results"]["tests"][0]
+    assert test["status"] == "passed"
+    # the parent's call phase already spans its three 100ms subtests
+    assert 300 <= test["duration"] < 550
