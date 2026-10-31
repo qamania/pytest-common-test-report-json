@@ -18,7 +18,7 @@ class TestObject:
     raw_status: Optional[str]
     start: int
     stop: int
-    _duration: float
+    _duration_s: float
     retries: int
     message: Optional[str]
 
@@ -49,7 +49,7 @@ class TestObject:
         self.trace = None
         self.start = 0
         self.stop = 0
-        self._duration = 0.0
+        self._duration_s = 0.0
         self._setup_seen = False
 
     @staticmethod
@@ -75,7 +75,7 @@ class TestObject:
         attempt = {
             'attempt': len(self.retry_attempts) + 1,
             'status': self._status.value,
-            'duration': max(round(self._duration * 1000), 0),
+            'duration': round(self._duration_s * 1000),
             'start': self.start,
             'stop': self.stop,
             'message': self.message,
@@ -138,7 +138,7 @@ class TestObject:
         # report.duration is monotonic, unlike the wall-clock start/stop.
         # subtest reports (they carry a context) are already counted in their test's call phase
         if not hasattr(report, 'context'):
-            self._duration += report.duration
+            self._duration_s += report.duration
         self.set_status(report)
         if report.when == "teardown":
             self.stop = int(report.stop * 1000)
@@ -152,7 +152,7 @@ class TestObject:
             'name': self.name,
             'status': self._status.value,
             'rawStatus': self.raw_status,
-            'duration': round(self._duration * 1000),
+            'duration': round(self._duration_s * 1000),
             'start': self.start,
             'stop': self.stop,
             'suite': self.suite,
