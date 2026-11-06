@@ -36,6 +36,16 @@ jobs:
           uv run pytest --ctrf $REPORT tests/test_plugin.py tests/test_validate.py
         env:
           CTRF_SCHEMA: ctrf.schema.json
+      - name: Run tests on minimum supported versions
+        # keep in sync with requires-python and dependencies in pyproject.toml, and the README
+        run: |
+          uv run --isolated --python 3.9 \
+            --with 'pytest==7.4.*' \
+            --with 'pytest-xdist==3.6.1' \
+            --with 'pytest-rerunfailures==14.0' \
+            pytest tests/test_plugin.py tests/test_validate.py
+        env:
+          CTRF_SCHEMA: ctrf.schema.json
       - name: Validate report against CTRF schema
         run: |
           uv run python schema_validator/validate.py --schema ctrf.schema.json --report $REPORT

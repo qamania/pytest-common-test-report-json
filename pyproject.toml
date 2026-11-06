@@ -12,6 +12,7 @@ exclude = [
 name = "pytest-json-ctrf"
 version = "0.6.2"
 
+# minimum pytest and Python versions: keep in sync with .github/workflows/deploy.yml and the README
 dependencies = [
     "pytest>=7.4",
 ]
