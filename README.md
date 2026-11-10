@@ -115,6 +115,9 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 - https://github.com/infopulse/Playwright-course-python -> The report will be used in the demo project as +1 report option
 
 ## Changelog
+- 0.6.5 - fixed issue 8 - under pytest-xdist, enum parameters (`IntEnum`, `(str, Enum)`, Django `TextChoices`/`IntegerChoices`) no longer crash the worker and drop the test from the run and the report
+  - such parameters are now reported as their `repr()`, e.g. `"<Color.RED: 1>"`, also without xdist, where they used to come out as their plain value
+  - a test that never got a teardown report (the session was aborted mid-test) is reported as `other` with rawStatus `incomplete` and no `stop`, instead of `passed` with `stop: 0`
 - 0.6.4 - summary `duration` is measured on a monotonic clock, so it stays correct when time-machine or freezegun travel is still active at the end of the session
   - summary `start` and `stop` are still wall-clock timestamps and are shifted under that travel, so `duration` can differ from `stop - start`
 - 0.6.3 - fixed issue 7 - test and retry attempt `duration` is the sum of pytest's monotonic phase durations, so it stays correct when a time-travel library such as time-machine moves the wall clock between tests
