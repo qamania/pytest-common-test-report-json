@@ -10,10 +10,11 @@ exclude = [
 
 [project]
 name = "pytest-json-ctrf"
-version = "0.6.1"
+version = "0.6.2"
 
+# minimum pytest and Python versions: keep in sync with .github/workflows/deploy.yml and the README
 dependencies = [
-    "pytest>6.0.0",
+    "pytest>=7.4",
 ]
 
 authors = [
@@ -22,7 +23,7 @@ authors = [
 description = "Pytest plugin to generate json report in CTRF (Common Test Report Format)"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 classifiers = [
     "Framework :: Pytest",
     "Programming Language :: Python :: 3",

@@ -15,6 +15,8 @@ Do not worry if report in GitHub does not appear immediately. It takes some time
 
 ## Installation
 
+Requires Python 3.9+ and pytest 7.4+.
+
 ```bash
 pip install pytest-json-ctrf
 ```
@@ -113,6 +115,7 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 - https://github.com/infopulse/Playwright-course-python -> The report will be used in the demo project as +1 report option
 
 ## Changelog
+- 0.6.2 - minimum versions are now pytest 7.4 and Python 3.9 (drops Python 3.8). pytest 6.x failed at startup, even without `--ctrf`; 7.0–7.2 failed when `--ctrf` was used; 7.3 worked, but reported `pytest.fail(..., pytrace=False)` messages without the `Failed: ` prefix
 - 0.6.1 - proper license added to the package to fix build pipeline warnings
 - 0.6.0 - fixed issue 12 - report now validates against the CTRF schema. Thanks to [@jamesarosen](https://github.com/jamesarosen) for the detailed report!
   - `filePath`, `rawStatus` and integer `buildNumber`; environment fields are added only when their variables are set (no defaults), plus `osPlatform`, `osRelease`, `osVersion` and `type` (`CTRF_TEST_TYPE`)
