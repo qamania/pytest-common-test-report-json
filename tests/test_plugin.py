@@ -386,7 +386,35 @@ def test_summary_counts_other_status(pytester: Pytester):
     assert summary["passed"] == 1
     assert summary["tests"] == summary["passed"] + summary["failed"] + summary["skipped"] \
         + summary["pending"] + summary["other"]
-    assert summary["duration"] == summary["stop"] - summary["start"]
+    # duration is measured on the monotonic clock, start/stop on the wall clock, so they can differ slightly
+    assert abs(summary["duration"] - (summary["stop"] - summary["start"])) < 100
+
+
+@pytest.mark.parametrize("travel", [
+    "import time_machine; time_machine.travel(946684800).start()",
+    "import freezegun; freezegun.freeze_time('2000-01-01').start()",
+], ids=["time-machine", "freezegun"])
+@pytest.mark.parametrize("args", [[], ["-n", "2"]], ids=["no_xdist", "xdist"])
+def test_summary_duration_ignores_time_travel(pytester: Pytester, travel, args):
+    # travel started in a conftest and never stopped: the plugin's tryfirst sessionstart has
+    # already read the real clock, its sessionfinish reads the traveled one
+    pytester.makeconftest(f"""
+        def pytest_sessionstart(session):
+            {travel}
+    """)
+    pytester.makepyfile(test_travel="""
+        import time
+
+        def test_sleeps():
+            time.sleep(0.1)
+    """)
+    # in a subprocess, because the travel is never stopped
+    pytester.runpytest_subprocess("--ctrf", "report.json", *args)
+    with open(pytester.path / "report.json") as file:
+        summary = json.load(file)["results"]["summary"]
+    # make sure the wall clock really moved, otherwise the check proves little
+    assert summary["stop"] < summary["start"]
+    assert 50 <= summary["duration"] < 60000
 
 
 def test_type_from_env(pytester: Pytester, monkeypatch):

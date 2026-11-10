@@ -13,16 +13,24 @@ from .TestObject import TestObject, TestStatus
 
 
 class Report:
+    # held on the class because freezegun replaces time.perf_counter and every module-level reference to it
+    _perf_counter = staticmethod(time.perf_counter)
+
     def __init__(self):
         self.test_items = OrderedDict()
         self.start_time = None
         self.stop_time = None
+        self._start_perf = None
+        self._duration_s = None
 
     def start(self) -> None:
         self.start_time = int(time.time() * 1000)
+        self._start_perf = self._perf_counter()
 
     def stop(self) -> None:
         self.stop_time = int(time.time() * 1000)
+        if self._start_perf is not None:
+            self._duration_s = self._perf_counter() - self._start_perf
 
     @staticmethod
     def _get_tool() -> dict:
@@ -49,8 +57,9 @@ class Report:
             'start': self.start_time,
             'stop': self.stop_time,
         }
-        if self.start_time is not None and self.stop_time is not None:
-            summary['duration'] = self.stop_time - self.start_time
+        # duration is monotonic, so unlike the wall-clock start/stop it survives time travel; it need not equal stop - start
+        if self._duration_s is not None:
+            summary['duration'] = round(self._duration_s * 1000)
         return summary
 
     @staticmethod

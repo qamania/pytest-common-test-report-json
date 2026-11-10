@@ -115,6 +115,8 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 - https://github.com/infopulse/Playwright-course-python -> The report will be used in the demo project as +1 report option
 
 ## Changelog
+- Unreleased - summary `duration` is measured on a monotonic clock, so it stays correct when time-machine or freezegun travel is still active at the end of the session
+  - summary `start` and `stop` are still wall-clock timestamps and are shifted under that travel, so `duration` can differ from `stop - start`
 - 0.6.3 - fixed issue 7 - test and retry attempt `duration` is the sum of pytest's monotonic phase durations, so it stays correct when a time-travel library such as time-machine moves the wall clock between tests
   - `start` and `stop` are still wall-clock timestamps, so `duration` can differ from `stop - start`
   - time between phases (report hooks, failure formatting) is no longer counted

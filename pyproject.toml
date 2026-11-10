@@ -45,7 +45,9 @@ ctrf = "ctrf.main"
 
 [dependency-groups]
 dev = [
+    "freezegun>=1.5",
     "jsonschema>=4.23.0",
     "pytest-rerunfailures>=14.0",
     "pytest-xdist>=3.6.1",
+    "time-machine>=2.10",
 ]
