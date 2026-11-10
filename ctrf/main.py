@@ -51,7 +51,7 @@ def ctrf_json_metadata(request: FixtureRequest):
         params = request.node.callspec.params
         browser = params.get('browser_name')
         if browser:
-            request.node._ctrf_metadata.setdefault('browser', browser)
+            request.node._ctrf_metadata.setdefault('browser', _serializable_param(browser))
         request.node._ctrf_metadata.setdefault(
             'parameters', {key: _serializable_param(value) for key, value in params.items()})
     return request.node._ctrf_metadata
@@ -62,8 +62,9 @@ MAX_PARAM_LENGTH = 200
 
 def _serializable_param(value):
     # keep only primitives: report metadata is sent between xdist workers and dumped to json;
-    # long values are truncated to keep the report small (see issue 6)
-    if not isinstance(value, (str, int, float, bool, type(None))):
+    # long values are truncated to keep the report small (see issue 6).
+    # exact type, not isinstance: xdist can't send subclasses such as IntEnum or Django's TextChoices (issue 8)
+    if type(value) not in (str, int, float, bool, type(None)):
         value = repr(value)
     if isinstance(value, str) and len(value) > MAX_PARAM_LENGTH:
         value = value[:MAX_PARAM_LENGTH] + '...'

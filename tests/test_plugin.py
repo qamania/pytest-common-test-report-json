@@ -119,11 +119,18 @@ def test_parametrize_marker_not_in_tags(pytester: Pytester):
 
 
 PARAMETRIZED_TESTS = """
+    import enum
     import pytest
 
     class Obj:
         def __repr__(self):
             return 'Obj()'
+
+    class Color(enum.IntEnum):
+        RED = 1
+
+    class Size(str, enum.Enum):
+        LARGE = 'large'
 
     @pytest.mark.parametrize('n', [1, 2])
     def test_numbers(n):
@@ -132,12 +139,20 @@ PARAMETRIZED_TESTS = """
     @pytest.mark.parametrize('obj, text', [(Obj(), 'z' * 500)], ids=['complex'])
     def test_complex(obj, text):
         assert True
+
+    # enum members subclass int or str, but xdist can't send them between processes (issue 8)
+    @pytest.mark.parametrize('color, size', [(Color.RED, Size.LARGE)], ids=['enums'])
+    def test_enums(color, size):
+        assert True
 """
 
 
 def _parametrized_report(pytester: Pytester, *args) -> dict:
     pytester.makepyfile(test_params=PARAMETRIZED_TESTS)
-    pytester.runpytest("--ctrf", "report.json", *args)
+    result = pytester.runpytest("--ctrf", "report.json", *args)
+    # a crashed xdist worker can still exit 0 with the test silently missing, so check both
+    result.assert_outcomes(passed=4)
+    assert result.ret == 0
     with open(pytester.path / "report.json") as file:
         report = json.load(file)
     return {test["name"]: test for test in report["results"]["tests"]}
@@ -148,12 +163,15 @@ def _check_parametrized_tests(tests: dict):
         "test_params.py::test_numbers[1]",
         "test_params.py::test_numbers[2]",
         "test_params.py::test_complex[complex]",
+        "test_params.py::test_enums[enums]",
     }
     assert tests["test_params.py::test_numbers[1]"]["parameters"] == {"n": 1}
     assert tests["test_params.py::test_numbers[2]"]["parameters"] == {"n": 2}
     complex_params = tests["test_params.py::test_complex[complex]"]["parameters"]
     assert complex_params["obj"] == "Obj()"
     assert complex_params["text"] == "z" * 200 + "..."
+    assert tests["test_params.py::test_enums[enums]"]["parameters"] == {
+        "color": "<Color.RED: 1>", "size": "<Size.LARGE: 'large'>"}
 
 
 def test_parametrized_tests_have_unique_names_and_parameters(pytester: Pytester):
@@ -388,6 +406,32 @@ def test_summary_counts_other_status(pytester: Pytester):
         + summary["pending"] + summary["other"]
     # duration is measured on the monotonic clock, start/stop on the wall clock, so they can differ slightly
     assert abs(summary["duration"] - (summary["stop"] - summary["start"])) < 100
+
+
+def test_test_without_teardown_is_not_passed(pytester: Pytester):
+    # the session stops inside the call phase, so the test never gets a teardown report (issue 8)
+    pytester.makepyfile(test_abort="""
+        import pytest
+
+        def test_ok():
+            pass
+
+        def test_aborts():
+            pytest.exit("stop")
+    """)
+    pytester.runpytest("--ctrf", "report.json")
+    with open(pytester.path / "report.json") as file:
+        results = json.load(file)["results"]
+    assert results["summary"]["passed"] == 1
+    assert results["summary"]["other"] == 1
+    tests = {test["name"]: test for test in results["tests"]}
+    assert tests["test_abort.py::test_ok"]["status"] == "passed"
+    aborted = tests["test_abort.py::test_aborts"]
+    assert aborted["status"] == "other"
+    assert aborted["rawStatus"] == "incomplete"
+    assert aborted["message"] == "the test did not finish: pytest sent no teardown report for it"
+    assert "stop" not in aborted
+    assert aborted["duration"] >= 0
 
 
 @pytest.mark.parametrize("travel", [

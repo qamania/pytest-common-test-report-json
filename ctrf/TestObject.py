@@ -51,6 +51,7 @@ class TestObject:
         self.stop = 0
         self._duration_s = 0.0
         self._setup_seen = False
+        self._teardown_seen = False
 
     @staticmethod
     def _suite(nodeid: str) -> List[str]:
@@ -59,8 +60,14 @@ class TestObject:
         return nodeid.split('[', 1)[0].split('::')[:-1]
 
     @property
+    def _incomplete(self) -> bool:
+        # every attempt ends with a teardown report; without one the session was aborted mid-test
+        # (pytest.exit, KeyboardInterrupt, a crashed xdist run), so "passed" so far is not a result (issue 8)
+        return not self._teardown_seen and self._status in (TestStatus.PASSED, TestStatus.PENDING)
+
+    @property
     def status(self) -> TestStatus:
-        return self._status
+        return TestStatus.OTHER if self._incomplete else self._status
 
     @property
     def retries(self) -> int:
@@ -68,7 +75,7 @@ class TestObject:
 
     @property
     def flaky(self) -> bool:
-        return self._status == TestStatus.PASSED and any(
+        return self.status == TestStatus.PASSED and any(
             attempt['status'] == TestStatus.FAILED.value for attempt in self.retry_attempts)
 
     def _finish_attempt(self) -> None:
@@ -142,6 +149,7 @@ class TestObject:
             self._duration_s += report.duration
         self.set_status(report)
         if report.when == "teardown":
+            self._teardown_seen = True
             self.stop = int(report.stop * 1000)
         if hasattr(report, '_ctrf_metadata'):
             self.tags = report._ctrf_metadata.get('tags')
@@ -151,11 +159,12 @@ class TestObject:
     def serialize(self, test_type: Optional[str] = None) -> dict:
         result: Dict[str, Any] = {
             'name': self.name,
-            'status': self._status.value,
-            'rawStatus': self.raw_status,
+            'status': self.status.value,
+            'rawStatus': 'incomplete' if self._incomplete else self.raw_status,
             'duration': round(self._duration_s * 1000),
             'start': self.start,
-            'stop': self.stop,
+            # no teardown, no stop: 0 would read as 1970
+            'stop': self.stop if self._teardown_seen else None,
             'suite': self.suite,
             'type': test_type,
             'retries': self.retries,
@@ -166,7 +175,8 @@ class TestObject:
             'browser': self.browser,
             'parameters': self.parameters,
             'trace': self.trace,
-            'message': self.message
+            'message': 'the test did not finish: pytest sent no teardown report for it' if self._incomplete
+            else self.message
         }
         if self.worker_id:
             result['extra'] = {'worker': self.worker_id}
