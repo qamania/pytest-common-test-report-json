@@ -115,6 +115,9 @@ The `pytest_runtest_logreport` hook in the controller node is used to collect th
 - https://github.com/infopulse/Playwright-course-python -> The report will be used in the demo project as +1 report option
 
 ## Changelog
+- Unreleased - fixed issue 7 - test and retry attempt `duration` is the sum of pytest's monotonic phase durations, so it stays correct when a time-travel library such as time-machine moves the wall clock between tests
+  - `start` and `stop` are still wall-clock timestamps, so `duration` can differ from `stop - start`
+  - time between phases (report hooks, failure formatting) is no longer counted
 - 0.6.2 - minimum versions are now pytest 7.4 and Python 3.9 (drops Python 3.8). pytest 6.x failed at startup, even without `--ctrf`; 7.0–7.2 failed when `--ctrf` was used; 7.3 worked, but reported `pytest.fail(..., pytrace=False)` messages without the `Failed: ` prefix
 - 0.6.1 - proper license added to the package to fix build pipeline warnings
 - 0.6.0 - fixed issue 12 - report now validates against the CTRF schema. Thanks to [@jamesarosen](https://github.com/jamesarosen) for the detailed report!

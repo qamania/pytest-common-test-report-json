@@ -534,3 +534,85 @@ def test_not_parametrized_test_has_no_parameters(ctrf_report_sync):
     for test in ctrf_report_sync["results"]["tests"]:
         if "[" not in test["name"]:
             assert "parameters" not in test
+
+
+SKEW_CONFTEST = """
+    import pytest
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_runtest_makereport(item, call):
+        report = (yield).get_result()
+        # simulate a time-travel library moving the wall clock between phases (start/stop are in seconds):
+        # a positive skew puts setup in the past and teardown in the future, a negative one the reverse
+        if report.when == "setup":
+            report.start -= {skew}
+        if report.when == "teardown":
+            report.stop += {skew}
+"""
+
+SKEW_PARAMS = pytest.mark.parametrize("skew,args", [
+    (100, []),
+    (-100, []),
+    (100, ["-n", "2"]),
+], ids=["ahead", "behind", "ahead-xdist"])
+
+
+@SKEW_PARAMS
+def test_duration_ignores_wall_clock_skew(pytester: Pytester, skew, args):
+    pytester.makeconftest(SKEW_CONFTEST.format(skew=skew))
+    pytester.makepyfile(test_skew="""
+        import time
+
+        def test_sleeps():
+            time.sleep(0.1)
+    """)
+    pytester.runpytest("--ctrf", "report.json", *args)
+    with open(pytester.path / "report.json") as file:
+        test = json.load(file)["results"]["tests"][0]
+    # ~100ms from monotonic phase durations, not about ±200000ms from the skewed wall clock
+    assert 50 <= test["duration"] <= 5000
+
+
+@SKEW_PARAMS
+def test_rerun_durations_ignore_wall_clock_skew(pytester: Pytester, skew, args):
+    pytester.makeconftest(SKEW_CONFTEST.format(skew=skew))
+    pytester.makepyfile(test_rerun_skew="""
+        import pytest
+        import time
+
+        calls = {}
+
+        @pytest.mark.flaky(reruns=1)
+        def test_flaky():
+            time.sleep(0.05)
+            calls["n"] = calls.get("n", 0) + 1
+            assert calls["n"] > 1
+    """)
+    pytester.runpytest("--ctrf", "report.json", *args)
+    with open(pytester.path / "report.json") as file:
+        test = json.load(file)["results"]["tests"][0]
+    assert test["status"] == "passed"
+    assert test["retries"] == 1
+    attempt = test["retryAttempts"][0]
+    assert attempt["status"] == "failed"
+    assert 25 <= attempt["duration"] <= 5000
+    assert 25 <= test["duration"] <= 5000
+
+
+@pytest.mark.skipif(not hasattr(pytest, "Subtests"), reason="built-in subtests need pytest 9")
+@pytest.mark.parametrize("args", [[], ["--reruns", "1"], ["-n", "2"]], ids=["plain", "reruns", "xdist"])
+def test_subtest_durations_are_not_counted_twice(pytester: Pytester, args):
+    pytester.makepyfile(test_subtests="""
+        import time
+
+        def test_parent(subtests):
+            for i in range(3):
+                with subtests.test(i=i):
+                    time.sleep(0.2)
+    """)
+    pytester.runpytest("--ctrf", "report.json", *args)
+    with open(pytester.path / "report.json") as file:
+        test = json.load(file)["results"]["tests"][0]
+    assert test["status"] == "passed"
+    # the parent's call phase already spans its three 200ms subtests; counting them twice gives 1200+
+    assert 600 <= test["duration"] < 1000
